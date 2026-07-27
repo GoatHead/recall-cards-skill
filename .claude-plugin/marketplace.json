@@ -1,0 +1,32 @@
+{
+  "name": "recall-cards-skill",
+  "id": "recall-cards-skill",
+  "owner": {
+    "name": "GoatHead"
+  },
+  "metadata": {
+    "description": "Turn Claude Code sessions into interactive study pages: field notes + multiple-choice recall quiz",
+    "version": "0.1.0"
+  },
+  "plugins": [
+    {
+      "name": "recall-cards",
+      "source": "./",
+      "description": "Session review through retrieval practice. Generates a single self-contained HTML page with structured field notes and a multiple-choice recall quiz, in 5 selectable visual styles.",
+      "version": "0.1.0",
+      "author": {
+        "name": "GoatHead"
+      },
+      "keywords": [
+        "learning",
+        "quiz",
+        "retrieval-practice",
+        "session-review",
+        "study",
+        "flashcards"
+      ],
+      "category": "productivity",
+      "strict": false
+    }
+  ]
+}

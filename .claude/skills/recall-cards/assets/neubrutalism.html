@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Recall Cards</title>
+<style>
+  :root{
+    --bg:#FFF8E7; --ink:#141414; --card:#FFFFFF;
+    --yellow:#FFD93D; --blue:#4D96FF; --pink:#FF6B9D;
+    --ok:#6BCB77; --bad:#FF6B6B; --shadow:6px 6px 0 var(--ink);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  body{background:var(--bg); color:var(--ink);
+    font-family:"Pretendard","Apple SD Gothic Neo","Malgun Gothic",system-ui,sans-serif;
+    line-height:1.65; padding:44px 20px;
+    background-image:radial-gradient(#e8ddc2 1.4px, transparent 1.4px); background-size:22px 22px;}
+  .wrap{max-width:740px; margin:0 auto;}
+  code{font-family:ui-monospace,Consolas,"D2Coding",monospace; font-size:.9em;
+    background:var(--yellow); border:2px solid var(--ink); padding:0 5px;}
+  header{background:var(--yellow); border:3px solid var(--ink); box-shadow:var(--shadow);
+    padding:24px 26px; margin-bottom:20px; transform:rotate(-.6deg);}
+  .eyebrow{display:inline-block; background:var(--ink); color:var(--yellow);
+    font-size:11px; font-weight:800; letter-spacing:.14em; padding:4px 10px; margin-bottom:10px;}
+  h1{font-size:clamp(26px,5vw,38px); font-weight:900; letter-spacing:-.02em;}
+  .meta{font-size:13px; font-weight:700; margin-top:6px;}
+  .stats{display:flex; flex-wrap:wrap; gap:12px; margin-bottom:38px;}
+  .stats:empty{display:none; margin:0;}
+  .stat{flex:1 1 120px; background:#fff; border:3px solid var(--ink);
+    box-shadow:4px 4px 0 var(--ink); padding:10px 14px;}
+  .stat .v{font-size:22px; font-weight:900;}
+  .stat .l{font-size:11.5px; font-weight:800; letter-spacing:.06em; text-transform:uppercase;}
+  .theme{margin-bottom:40px;}
+  .theme-head{display:flex; gap:12px; align-items:baseline; flex-wrap:wrap; margin-bottom:16px;}
+  .theme-no{background:var(--ink); color:#fff; font-weight:900; font-size:13px; padding:3px 10px;}
+  .theme-head h2{font-size:19px; font-weight:900; background:var(--blue); color:#fff;
+    border:3px solid var(--ink); box-shadow:4px 4px 0 var(--ink); padding:4px 14px;}
+  .theme-head .sub{font-size:13px; font-weight:700; margin-left:auto;}
+  .kcard{background:var(--card); border:3px solid var(--ink); box-shadow:var(--shadow);
+    padding:16px 18px; margin-bottom:16px;}
+  .kcard .tag{display:inline-block; background:var(--pink); color:#fff; border:2px solid var(--ink);
+    font-size:11px; font-weight:900; padding:2px 9px; margin-bottom:8px;}
+  .kcard .tag:empty{display:none;}
+  .kcard h3{font-size:16px; font-weight:900; margin-bottom:4px;}
+  .kcard .body{font-size:14.5px;}
+  .kcard .rule{font-size:13.5px; font-weight:700; margin-top:9px;
+    background:var(--yellow); border:2px solid var(--ink); padding:7px 11px;}
+  .kcard .rule b{font-weight:900;}
+  .sec-label{display:inline-block; background:var(--blue); color:#fff; border:3px solid var(--ink);
+    box-shadow:4px 4px 0 var(--ink); font-weight:900; font-size:14px;
+    padding:6px 14px; margin-bottom:18px;}
+  .qcard{background:var(--card); border:3px solid var(--ink); box-shadow:var(--shadow);
+    padding:20px; margin-bottom:24px;}
+  .qcard-head{margin-bottom:10px;}
+  .q-num{display:inline-block; background:var(--pink); color:#fff; border:2px solid var(--ink);
+    font-size:12px; font-weight:900; padding:3px 10px;}
+  .qcard h2{font-size:17px; font-weight:900; margin-bottom:14px;}
+  .opts{display:grid; gap:10px;}
+  .opt{display:flex; gap:10px; align-items:flex-start; text-align:left; width:100%;
+    background:#fff; border:3px solid var(--ink); padding:11px 13px; font:inherit;
+    font-size:14.5px; font-weight:600; cursor:pointer;
+    box-shadow:3px 3px 0 var(--ink); transition:transform .08s, box-shadow .08s;}
+  .opt:hover{transform:translate(-2px,-2px); box-shadow:5px 5px 0 var(--ink);}
+  .opt:active{transform:translate(2px,2px); box-shadow:1px 1px 0 var(--ink);}
+  .opt .key{background:var(--ink); color:#fff; font-size:11px; font-weight:900;
+    padding:2px 7px; flex-shrink:0; margin-top:2px;}
+  .opt.correct{background:var(--ok);}
+  .opt.wrong{background:var(--bad); color:#fff;}
+  .opt.wrong .key{background:#fff; color:var(--ink);}
+  .opt.wrong code{background:#fff;}
+  .qcard.answered .opt{cursor:default; transform:none;}
+  .expl{display:none; margin-top:14px; background:var(--yellow);
+    border:3px solid var(--ink); padding:12px 14px; font-size:14px;}
+  .expl.show{display:block;}
+  .expl b{display:block; font-weight:900; margin-bottom:4px;}
+  .expl code{background:#fff;}
+  footer{background:var(--ink); color:#fff; border:3px solid var(--ink);
+    box-shadow:6px 6px 0 var(--blue); padding:16px 20px; margin-top:32px;
+    display:flex; justify-content:space-between; font-weight:900; font-size:16px;}
+  @media (prefers-reduced-motion: reduce){*{transition:none !important;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Session Recall</div>
+    <h1 id="title"></h1>
+    <div class="meta" id="meta"></div>
+  </header>
+  <div class="stats" id="stats"></div>
+  <main id="sections"></main>
+  <section>
+    <div class="sec-label">퀴즈 — 기억을 꺼내보기</div>
+    <div id="quiz"></div>
+  </section>
+  <footer><span>SCORE</span><span id="score">0 / 0</span></footer>
+</div>
+<script>
+const DATA = /*__DATA__*/null;
+const $ = id => document.getElementById(id);
+let score = 0;
+$('title').innerHTML = DATA.title;
+$('meta').innerHTML = DATA.date || '';
+$('stats').innerHTML = (DATA.stats||[]).map(s=>
+  `<div class="stat"><div class="v">${s.value}</div><div class="l">${s.label}</div></div>`).join('');
+$('sections').innerHTML = DATA.sections.map(sec=>`
+  <section class="theme">
+    <div class="theme-head">
+      ${sec.no?`<span class="theme-no">${sec.no}</span>`:''}
+      <h2>${sec.title}</h2>
+      ${sec.subtitle?`<span class="sub">${sec.subtitle}</span>`:''}
+    </div>
+    ${sec.cards.map(c=>`
+      <div class="kcard">
+        <div class="tag">${c.tag||''}</div>
+        <div>
+          <h3>${c.heading}</h3>
+          <p class="body">${c.body}</p>
+          ${c.rule?`<p class="rule"><b>규칙</b> — ${c.rule}</p>`:''}
+        </div>
+      </div>`).join('')}
+  </section>`).join('');
+$('quiz').innerHTML = DATA.quiz.map((q,qi)=>`
+  <div class="qcard" data-q="${qi}">
+    <div class="qcard-head"><span class="q-num">Q${String(qi+1).padStart(2,'0')}</span></div>
+    <h2>${q.q}</h2>
+    <div class="opts">${q.options.map((o,oi)=>`
+      <button class="opt" data-o="${oi}"><span class="key">${'ABCDE'[oi]}</span><span>${o}</span></button>`).join('')}
+    </div>
+    <div class="expl"><b>왜?</b>${q.explanation}</div>
+  </div>`).join('');
+$('score').textContent = `0 / ${DATA.quiz.length}`;
+document.querySelectorAll('.qcard').forEach(card=>{
+  const qi = +card.dataset.q;
+  card.querySelectorAll('.opt').forEach(btn=>{
+    btn.addEventListener('click',()=>{
+      if(card.classList.contains('answered')) return;
+      card.classList.add('answered');
+      const pick = +btn.dataset.o, ans = DATA.quiz[qi].answer;
+      card.querySelectorAll('.opt')[ans].classList.add('correct');
+      if(pick!==ans) btn.classList.add('wrong'); else score++;
+      card.querySelector('.expl').classList.add('show');
+      $('score').textContent = `${score} / ${DATA.quiz.length}`;
+    });
+  });
+});
+</script>
+</body>
+</html>
