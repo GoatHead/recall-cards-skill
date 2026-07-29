@@ -25,33 +25,17 @@
     background:rgba(255,255,255,.14); border:1px solid var(--border);
     border-radius:6px; padding:1px 6px;}
   header{background:var(--glass); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
-    border:1px solid var(--border); border-radius:20px; padding:28px 30px; margin-bottom:18px;}
+    border:1px solid var(--border); border-radius:20px; padding:28px 30px; margin-bottom:24px;}
   .eyebrow{font-size:11px; letter-spacing:.22em; text-transform:uppercase; color:var(--accent); font-weight:700;}
   h1{font-size:clamp(26px,5vw,36px); font-weight:800; margin-top:8px; letter-spacing:-.01em;}
   .meta{color:var(--dim); font-size:13px; margin-top:6px;}
-  .stats{display:flex; flex-wrap:wrap; gap:12px; margin-bottom:36px;}
-  .stats:empty{display:none; margin:0;}
-  .stat{flex:1 1 120px; background:var(--glass); backdrop-filter:blur(16px);
-    border:1px solid var(--border); border-radius:16px; padding:12px 16px;}
-  .stat .v{font-size:22px; font-weight:800;}
-  .stat .l{font-size:11.5px; letter-spacing:.1em; text-transform:uppercase; color:var(--dim);}
-  .theme{margin-bottom:38px;}
-  .theme-head{display:flex; gap:12px; align-items:baseline; flex-wrap:wrap;
-    margin:0 4px 14px; border-bottom:1px solid var(--border); padding-bottom:8px;}
-  .theme-no{color:var(--accent); font-weight:800; font-size:13px;}
-  .theme-head h2{font-size:18px; font-weight:800;}
-  .theme-head .sub{font-size:12.5px; color:var(--dim); margin-left:auto;}
-  .kcard{background:var(--glass); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
-    border:1px solid var(--border); border-radius:18px; padding:17px 20px; margin-bottom:12px;}
-  .kcard .tag{display:inline-block; font-size:10.5px; font-weight:800; letter-spacing:.12em;
-    text-transform:uppercase; color:#1a1f4b; background:var(--accent);
-    border-radius:999px; padding:3px 11px; margin-bottom:8px;}
-  .kcard .tag:empty{display:none;}
-  .kcard h3{font-size:15.5px; font-weight:700; margin-bottom:4px;}
-  .kcard .body{font-size:14px; color:var(--dim);}
-  .kcard .rule{font-size:13.5px; margin-top:9px; padding:8px 12px; border-radius:12px;
-    background:rgba(155,181,255,.12); border:1px solid rgba(155,181,255,.3);}
-  .kcard .rule b{color:var(--accent);}
+  .theme{background:var(--glass); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
+    border:1px solid var(--border); border-radius:20px; padding:24px 28px; margin-bottom:20px;}
+  .theme h2{font-size:18px; font-weight:800; margin-bottom:16px;
+    border-bottom:1px solid var(--border); padding-bottom:10px;}
+  .prose p{font-size:14.5px; color:var(--dim); margin-bottom:14px; line-height:1.75;}
+  .prose p:last-child{margin-bottom:0;}
+  .prose b{font-weight:700; color:var(--text);}
   .sec-label{font-size:12px; letter-spacing:.2em; text-transform:uppercase; font-weight:700;
     color:var(--accent); margin:0 4px 14px;}
   .qcard{background:var(--glass); backdrop-filter:blur(16px); -webkit-backdrop-filter:blur(16px);
@@ -59,7 +43,7 @@
   .qcard-head{margin-bottom:12px;}
   .q-num{display:inline-block; font-size:11px; font-weight:700; letter-spacing:.16em;
     color:#1a1f4b; background:var(--accent); border-radius:999px; padding:4px 12px;}
-  .qcard h2{font-size:16.5px; font-weight:700; margin-bottom:14px;}
+  .qcard h2{font-size:16.5px; font-weight:700; margin-bottom:14px; border:none; padding:0;}
   .opts{display:grid; gap:10px;}
   .opt{display:flex; gap:10px; align-items:flex-start; text-align:left; width:100%;
     background:var(--glass); border:1px solid var(--border); border-radius:14px;
@@ -91,7 +75,6 @@
     <h1 id="title"></h1>
     <div class="meta" id="meta"></div>
   </header>
-  <div class="stats" id="stats"></div>
   <main id="sections"></main>
   <section>
     <div class="sec-label">퀴즈 — 기억을 꺼내보기</div>
@@ -105,25 +88,11 @@ const $ = id => document.getElementById(id);
 let score = 0;
 $('title').innerHTML = DATA.title;
 $('meta').innerHTML = DATA.date || '';
-$('stats').innerHTML = (DATA.stats||[]).map(s=>
-  `<div class="stat"><div class="v">${s.value}</div><div class="l">${s.label}</div></div>`).join('');
 $('sections').innerHTML = DATA.sections.map(sec=>`
-  <section class="theme">
-    <div class="theme-head">
-      ${sec.no?`<span class="theme-no">${sec.no}</span>`:''}
-      <h2>${sec.title}</h2>
-      ${sec.subtitle?`<span class="sub">${sec.subtitle}</span>`:''}
-    </div>
-    ${sec.cards.map(c=>`
-      <div class="kcard">
-        <div class="tag">${c.tag||''}</div>
-        <div>
-          <h3>${c.heading}</h3>
-          <p class="body">${c.body}</p>
-          ${c.rule?`<p class="rule"><b>규칙</b> — ${c.rule}</p>`:''}
-        </div>
-      </div>`).join('')}
-  </section>`).join('');
+  <article class="theme">
+    <h2>${sec.title}</h2>
+    <div class="prose">${sec.body}</div>
+  </article>`).join('');
 $('quiz').innerHTML = DATA.quiz.map((q,qi)=>`
   <div class="qcard" data-q="${qi}">
     <div class="qcard-head"><span class="q-num">Q${String(qi+1).padStart(2,'0')}</span></div>

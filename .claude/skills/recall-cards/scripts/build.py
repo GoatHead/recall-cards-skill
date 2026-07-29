@@ -5,8 +5,9 @@ Usage:
     python3 build.py content.json --style swiss-minimal -o index.html
 
 Validates content.json against the recall-cards schema, converts
-mini-markdown (`code`, **bold**) to safe HTML, injects the data into
-the chosen style template, and writes a single self-contained HTML file.
+mini-markdown (paragraphs, `code`, **bold**) to safe HTML, injects
+the data into the chosen style template, and writes a single
+self-contained HTML file.
 
 On validation failure: prints every problem with its JSON path and exits 1,
 so the caller (Claude) can fix content.json and re-run.
@@ -24,12 +25,31 @@ PLACEHOLDER = "/*__DATA__*/null"
 
 # ---------- mini-markdown ----------
 
-def md(s: str) -> str:
+def md_inline(s: str) -> str:
     """HTML-escape everything, then allow only `code` and **bold**."""
     s = html.escape(str(s), quote=False)
     s = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", s)
     s = re.sub(r"`([^`]+)`", r"<code>\1</code>", s)
     return s
+
+
+def md_body(s: str) -> str:
+    """Convert body text with paragraph breaks to HTML paragraphs.
+
+    Splits on double-newline for paragraphs. Within each paragraph,
+    applies inline formatting (code, bold).
+    """
+    s = str(s).strip()
+    paragraphs = re.split(r"\n\n+", s)
+    parts = []
+    for p in paragraphs:
+        p = p.strip()
+        if not p:
+            continue
+        # Collapse single newlines within a paragraph into spaces
+        p = re.sub(r"\n", " ", p)
+        parts.append(f"<p>{md_inline(p)}</p>")
+    return "\n".join(parts)
 
 # ---------- validation ----------
 
@@ -52,18 +72,7 @@ def validate(data) -> list:
     need_str(data, "title", "$")
     need_str(data, "date", "$", required=False)
 
-    stats = data.get("stats")
-    if stats is not None:
-        if not isinstance(stats, list):
-            e("$.stats: 배열이어야 함")
-        else:
-            for i, st in enumerate(stats):
-                if not isinstance(st, dict):
-                    e(f"$.stats[{i}]: 객체여야 함")
-                    continue
-                need_str(st, "label", f"$.stats[{i}]")
-                need_str(st, "value", f"$.stats[{i}]")
-
+    # --- sections: array of {title, body} ---
     sections = data.get("sections")
     if not isinstance(sections, list) or not sections:
         e("$.sections: 비어있지 않은 배열이어야 함")
@@ -74,22 +83,9 @@ def validate(data) -> list:
             e(f"{p}: 객체여야 함")
             continue
         need_str(sec, "title", p)
-        need_str(sec, "no", p, required=False)
-        need_str(sec, "subtitle", p, required=False)
-        cards = sec.get("cards")
-        if not isinstance(cards, list) or not cards:
-            e(f"{p}.cards: 비어있지 않은 배열이어야 함")
-            continue
-        for ci, c in enumerate(cards):
-            cp = f"{p}.cards[{ci}]"
-            if not isinstance(c, dict):
-                e(f"{cp}: 객체여야 함")
-                continue
-            need_str(c, "heading", cp)
-            need_str(c, "body", cp)
-            need_str(c, "tag", cp, required=False)
-            need_str(c, "rule", cp, required=False)
+        need_str(sec, "body", p)
 
+    # --- quiz ---
     quiz = data.get("quiz")
     if not isinstance(quiz, list) or not quiz:
         e("$.quiz: 비어있지 않은 배열이어야 함")
@@ -126,30 +122,22 @@ def validate(data) -> list:
 def transform(data: dict) -> dict:
     """Apply mini-markdown to all human-visible text fields."""
     out = {
-        "title": md(data["title"]),
-        "date": md(data.get("date", "")),
-        "stats": [{"label": md(s["label"]), "value": md(s["value"])} for s in data.get("stats") or []],
+        "title": md_inline(data["title"]),
+        "date": md_inline(data.get("date", "")),
         "sections": [],
         "quiz": [],
     }
     for sec in data["sections"]:
         out["sections"].append({
-            "no": md(sec.get("no", "")),
-            "title": md(sec["title"]),
-            "subtitle": md(sec.get("subtitle", "")),
-            "cards": [{
-                "tag": md(c.get("tag", "")),
-                "heading": md(c["heading"]),
-                "body": md(c["body"]),
-                "rule": md(c.get("rule", "")),
-            } for c in sec["cards"]],
+            "title": md_inline(sec["title"]),
+            "body": md_body(sec["body"]),
         })
     for q in data["quiz"]:
         out["quiz"].append({
-            "q": md(q["q"]),
-            "options": [md(o) for o in q["options"]],
+            "q": md_inline(q["q"]),
+            "options": [md_inline(o) for o in q["options"]],
             "answer": q["answer"],
-            "explanation": md(q["explanation"]),
+            "explanation": md_inline(q["explanation"]),
         })
     return out
 
@@ -191,9 +179,8 @@ def main():
     out_html = template.replace(PLACEHOLDER, payload, 1)
 
     Path(args.out).write_text(out_html, encoding="utf-8")
-    n_cards = sum(len(s["cards"]) for s in data["sections"])
     print(f"[ok] {args.out} 생성 — style={args.style}, sections={len(data['sections'])}, "
-          f"cards={n_cards}, quiz={len(data['quiz'])}")
+          f"quiz={len(data['quiz'])}")
 
 
 if __name__ == "__main__":
