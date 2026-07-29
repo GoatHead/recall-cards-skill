@@ -28,6 +28,24 @@ cp -r /tmp/rc/.claude/skills/recall-cards .claude/skills/
 
 설치 확인: 새 세션에서 `/plugin` 또는 스킬 목록에 `recall-cards`가 보이면 완료.
 
+## Update
+
+새 버전이 나오면 마켓플레이스 카탈로그를 먼저 갱신한 뒤 플러그인을 업데이트한다:
+
+```
+/plugin marketplace update recall-cards-skill
+/plugin update recall-cards@recall-cards-skill
+```
+
+CLI에서는:
+
+```bash
+claude plugin marketplace update recall-cards-skill
+claude plugin update recall-cards@recall-cards-skill
+```
+
+카탈로그 갱신 없이 `plugin update`만 하면 이전 버전이 최신으로 보고되어 업데이트되지 않는다. 수동 설치한 경우는 Install의 수동 설치 절차를 다시 실행하면 된다.
+
 ## Usage
 
 ```

@@ -13,7 +13,7 @@
       "name": "recall-cards",
       "source": "./",
       "description": "Session review through retrieval practice. Generates a single self-contained HTML page with structured field notes and a multiple-choice recall quiz, in 5 selectable visual styles.",
-      "version": "0.2.0",
+      "version": "0.4.0",
       "author": {
         "name": "GoatHead"
       },
