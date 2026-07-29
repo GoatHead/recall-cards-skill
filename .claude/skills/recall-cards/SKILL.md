@@ -103,7 +103,8 @@ Claude는 콘텐츠 JSON만 작성하고, 렌더링은 스크립트가 한다. *
 ### 다이어그램 (Mermaid)
 
 `diagram` 필드를 사용해 다이어그램을 삽입할 수 있다. 
-**주의:** 다이어그램을 올바르게 렌더링하려면 HTML 빌드 시 템플릿과 함께 `assets/vendor/mermaid.min.js` 파일이 필요하다. (없으면 빈 공간으로 처리됨)
+mermaid 템플릿을 렌더하기 위한 script src는 템플릿에 존재한다.
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
 
 ## Writing rules — 톤과 깊이
 
