@@ -1,7 +1,7 @@
 {
   "name": "recall-cards",
   "description": "Turn the current session's learnings into an interactive study page: structured field notes plus a multiple-choice recall quiz, rendered as a single self-contained HTML file. Use when reviewing a session, studying what was learned, or generating quiz/recall cards from work just completed.",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": {
     "name": "GoatHead"
   },

@@ -4,6 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Recall Cards</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github-dark.min.css">
 <style>
   :root{
     --glass:rgba(255,255,255,0.12); --glass-strong:rgba(255,255,255,0.2);
@@ -66,6 +67,39 @@
     border-radius:20px; margin-top:30px; padding:18px 24px;
     display:flex; justify-content:space-between; font-weight:800; font-size:15px;}
   @media (prefers-reduced-motion: reduce){*{transition:none !important;}}
+
+  /* New Styles */
+  .callout { margin: 16px 0; padding: 14px 16px; border-radius: 16px; border: 1px solid var(--border); background: var(--glass); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+  .callout-icon { margin-right: 8px; }
+  .callout-label { font-weight: 800; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; display: block; margin-bottom: 6px; color: var(--accent); }
+  .callout-body { font-size: 14.5px; }
+  .callout-body p { margin-bottom: 8px; }
+  .callout-body p:last-child { margin-bottom: 0; }
+  
+  .diagram-wrap { margin: 20px 0; text-align: center; }
+  .diagram-src { text-align: left; font-size: 13px; padding: 14px; overflow-x: auto; white-space: pre; border: 1px solid var(--border); border-radius: 16px; background: rgba(0,0,0,0.2); }
+  .diagram-cap { font-size: 13px; margin-top: 8px; opacity: 0.7; }
+  .mermaid { padding: 16px; border: 1px solid var(--border); border-radius: 16px; background: var(--glass); }
+  .mermaid svg { max-width: 100%; height: auto; }
+  
+  .code-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 20px 0; }
+  @media (max-width: 600px) { .code-compare { grid-template-columns: 1fr; } }
+  .code-panel { border: 1px solid var(--border); border-radius: 16px; background: var(--glass); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); overflow: hidden; }
+  .code-panel pre { padding: 14px; font-size: 13px; overflow-x: auto; margin: 0; background: rgba(0,0,0,0.15); }
+  .code-panel code { background: none; border: none; padding: 0; font-size: inherit; }
+  .code-label { font-size: 12px; font-weight: 800; padding: 8px 12px; border-bottom: 1px solid var(--border); background: rgba(255,255,255,0.05); }
+  
+  .analogy-card { margin: 20px 0; padding: 16px 18px; border-radius: 16px; border: 1px solid var(--border); background: var(--glass); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+  .analogy-icon { margin-right: 6px; }
+  .analogy-label { font-weight: 800; font-size: 12px; letter-spacing: .1em; text-transform: uppercase; display: block; margin-bottom: 6px; color: var(--accent); }
+  .analogy-body { font-size: 14.5px; }
+  .analogy-body p { margin-bottom: 8px; }
+  .analogy-body p:last-child { margin-bottom: 0; }
+  
+  .q-diff { font-size: 11px; font-weight: 800; letter-spacing: .1em; float: right; padding: 2px 8px; border-radius: 999px; background: rgba(255,255,255,0.1); }
+  .q-diff-1 { color: var(--ok); }
+  .q-diff-2 { color: #FFD166; }
+  .q-diff-3 { color: var(--bad); }
 </style>
 </head>
 <body>
@@ -82,26 +116,63 @@
   </section>
   <footer><span>SCORE</span><span id="score">0 / 0</span></footer>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
 <script>
 const DATA = /*__DATA__*/null;
 const $ = id => document.getElementById(id);
 let score = 0;
 $('title').innerHTML = DATA.title;
 $('meta').innerHTML = DATA.date || '';
-$('sections').innerHTML = DATA.sections.map(sec=>`
-  <article class="theme">
-    <h2>${sec.title}</h2>
-    <div class="prose">${sec.body}</div>
-  </article>`).join('');
-$('quiz').innerHTML = DATA.quiz.map((q,qi)=>`
-  <div class="qcard" data-q="${qi}">
-    <div class="qcard-head"><span class="q-num">Q${String(qi+1).padStart(2,'0')}</span></div>
+$('sections').innerHTML = DATA.sections.map(sec=>{
+  let extras = '';
+  // diagram
+  if(sec.diagram){
+    const hasMermaid = typeof mermaid !== 'undefined';
+    extras += `<div class="diagram-wrap">`;
+    if(hasMermaid){
+      extras += `<div class="mermaid">${sec.diagram.code}</div>`;
+    } else {
+      extras += `<pre class="diagram-src">${sec.diagram.code}</pre>`;
+    }
+    if(sec.diagram.caption) extras += `<div class="diagram-cap">${sec.diagram.caption}</div>`;
+    extras += `</div>`;
+  }
+  // codeCompare
+  if(sec.codeCompare){
+    const c = sec.codeCompare;
+    const langB = c.before.lang ? ` class="language-${c.before.lang}"` : '';
+    const langA = c.after.lang ? ` class="language-${c.after.lang}"` : '';
+    extras += `<div class="code-compare">
+      <div class="code-panel code-before"><div class="code-label">✗ ${c.before.label}</div><pre><code${langB}>${c.before.code}</code></pre></div>
+      <div class="code-panel code-after"><div class="code-label">✓ ${c.after.label}</div><pre><code${langA}>${c.after.code}</code></pre></div>
+    </div>`;
+  }
+  // analogy
+  if(sec.analogy){
+    extras += `<div class="analogy-card"><span class="analogy-icon">🔗</span><span class="analogy-label">일상으로</span><div class="analogy-body">${sec.analogy}</div></div>`;
+  }
+  return `<article class="theme"><h2>${sec.title}</h2><div class="prose">${sec.body}</div>${extras}</article>`;
+}).join('');
+$('quiz').innerHTML = DATA.quiz.map((q,qi)=>{
+  const diff = q.difficulty;
+  const diffHtml = diff ? `<span class="q-diff q-diff-${diff}">${'●'.repeat(diff)}${'○'.repeat(3-diff)} ${['','EASY','MEDIUM','HARD'][diff]}</span>` : '';
+  return `<div class="qcard" data-q="${qi}">
+    <div class="qcard-head"><span class="q-num">Q${String(qi+1).padStart(2,'0')}</span>${diffHtml}</div>
     <h2>${q.q}</h2>
     <div class="opts">${q.options.map((o,oi)=>`
       <button class="opt" data-o="${oi}"><span class="key">${'ABCDE'[oi]}</span><span>${o}</span></button>`).join('')}
     </div>
     <div class="expl"><b>왜?</b>${q.explanation}</div>
-  </div>`).join('');
+  </div>`;
+}).join('');
+if(typeof mermaid !== 'undefined'){
+  mermaid.initialize({startOnLoad:false, theme:'dark', securityLevel:'loose'});
+  mermaid.run({querySelector:'.mermaid'});
+}
+if(typeof hljs !== 'undefined'){
+  hljs.highlightAll();
+}
 $('score').textContent = `0 / ${DATA.quiz.length}`;
 document.querySelectorAll('.qcard').forEach(card=>{
   const qi = +card.dataset.q;

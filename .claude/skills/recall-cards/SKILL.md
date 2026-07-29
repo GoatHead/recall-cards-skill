@@ -1,6 +1,7 @@
 ---
 name: recall-cards
 description: Turn the current Claude Code session's learnings into an interactive study page (field notes + multiple-choice recall quiz) as a single HTML file. Use when the user asks to review the session, study what was learned, quiz them on today's work, make recall/flash cards, or says things like "세션 복습", "오늘 배운 거 정리해서 퀴즈로", "회상 카드 만들어줘", "recall", "quiz me on this session". Leverages retrieval practice: reading the notes, then actively recalling via quiz.
+argument-hint: "[style] [quiz_count] [depth]"
 ---
 
 # recall-cards
@@ -33,8 +34,9 @@ Claude는 콘텐츠 JSON만 작성하고, 렌더링은 스크립트가 한다. *
 3. depth 규칙에 맞춰 `content.json` 작성 (스키마 아래).
 4. 빌드:
    ```bash
-   python3 scripts/build.py content.json --style <style> -o /mnt/user-data/outputs/recall.html
+   python3 scripts/build.py content.json --style <style>
    ```
+   `-o`를 생략하면 `{YYYYMMDD_HHMM}-{title}-recall.html` 형식으로 자동 생성된다.
 5. 검증 에러가 나오면 메시지의 JSON 경로를 보고 content.json을 고쳐 재실행. 성공하면 파일을 사용자에게 제시.
 
 ## Content schema (content.json)
@@ -67,12 +69,41 @@ Claude는 콘텐츠 JSON만 작성하고, 렌더링은 스크립트가 한다. *
 - **`sections`** (필수, 1개 이상): 각 섹션은 하나의 주제 영역.
   - `title` (필수): 섹션 제목.
   - `body` (필수): **마크다운 자유형 본문.** `\n\n`으로 문단 구분. 지원 문법: `**bold**`, `` `code` ``, `\n\n`(문단). 이 외의 마크다운(헤더, 리스트, 링크 등)은 사용하지 않는다.
+  - `diagram` (선택): `{ "type": "mermaid", "code": "...", "caption": "..." }` 형태의 객체.
+  - `codeCompare` (선택): `{ "before": { "label": "...", "lang": "...", "code": "..." }, "after": { "label": "...", "lang": "...", "code": "..." } }` 형태의 객체.
+  - `analogy` (선택): 개념을 일상적인 비유로 설명하는 문자열. 마크다운(`\n\n`, `**bold**`, `` `code` ``) 지원.
 - **`quiz`** (필수, 1개 이상): 객관식 퀴즈 배열.
   - `q` (필수): 질문.
   - `options` (필수, 2~5개): 선지 배열.
   - `answer` (필수): 0-기반 정답 인덱스.
   - `explanation` (필수): 해설.
+  - `difficulty` (선택): 난이도 (1=쉬움, 2=보통, 3=어려움).
 - 텍스트 필드는 **`code`와 `**bold**`만 허용**. raw HTML 금지 (스크립트가 이스케이프함).
+
+### 콜아웃 (Callout) 문법
+
+`body` 필드 안에서 특정 내용을 강조하고 싶다면 콜아웃 문법(`:::타입`)을 사용할 수 있다. 각 콜아웃은 새 문단으로 분리해야 한다.
+
+- `:::principle` : 핵심 원칙 (💡)
+- `:::warning` : 주의 사항 (⚠️)
+- `:::analogy` : 일상으로 비유하기 (🔗)
+
+**사용 예시:**
+```
+이 방식은 기본적으로 빠르다.
+
+:::principle
+하지만 락이 걸리지 않는다는 점을 명심하라.
+동시성 문제가 발생할 수 있다.
+:::
+
+따라서 충돌이 적은 환경에서만 사용해야 한다.
+```
+
+### 다이어그램 (Mermaid)
+
+`diagram` 필드를 사용해 다이어그램을 삽입할 수 있다. 
+**주의:** 다이어그램을 올바르게 렌더링하려면 HTML 빌드 시 템플릿과 함께 `assets/vendor/mermaid.min.js` 파일이 필요하다. (없으면 빈 공간으로 처리됨)
 
 ## Writing rules — 톤과 깊이
 
@@ -103,7 +134,8 @@ Claude는 콘텐츠 JSON만 작성하고, 렌더링은 스크립트가 한다. *
 2. **오답 선지는 그럴듯한 오개념.** 세션 중 실제로 헷갈렸던 것, 흔한 착각, 겉보기에 맞아 보이는 것에서 뽑는다. 뻔히 틀린 선지는 인출이 아니라 소거법 놀이가 된다.
 3. **explanation은 정답 근거 + 주요 오답이 왜 틀렸는지**까지.
 4. **정답 위치를 섞는다.** 한 인덱스에 60% 이상 몰리면 스크립트가 경고한다.
-5. 개수는 `quiz_count`. 섹션 수보다 퀴즈가 많으면 한 섹션에서 각도 다른 문제 2개 가능.
+5. 개수는 `quiz_count`. 섹션 수보다 퀴즈가 많으면 한 단원에서 각도 다른 문제 2개 가능.
+6. **difficulty 필드를 활용한다.** 필요한 경우 1, 2, 3으로 난이도를 명시하여 사용자가 수준에 맞춰 풀 수 있도록 한다.
 
 ## Style reference
 

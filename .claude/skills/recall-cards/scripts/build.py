@@ -37,18 +37,61 @@ def md_body(s: str) -> str:
     """Convert body text with paragraph breaks to HTML paragraphs.
 
     Splits on double-newline for paragraphs. Within each paragraph,
-    applies inline formatting (code, bold).
+    applies inline formatting (code, bold). Extracts and parses callouts first.
     """
     s = str(s).strip()
+    
+    callouts_config = {
+        "principle": {"icon": "💡", "label": "핵심 원칙"},
+        "warning": {"icon": "⚠️", "label": "주의"},
+        "analogy": {"icon": "🔗", "label": "일상으로"},
+    }
+    
+    placeholders = {}
+    counter = 0
+    
+    def callout_repl(match):
+        nonlocal counter
+        ctype = match.group(1)
+        content = match.group(2).strip()
+        content = re.sub(r"\n", " ", content)
+        content = md_inline(content)
+        icon = callouts_config[ctype]["icon"]
+        label = callouts_config[ctype]["label"]
+        
+        html_str = f'<div class="callout callout-{ctype}"><span class="callout-icon">{icon}</span><span class="callout-label">{label}</span><div class="callout-body"><p>{content}</p></div></div>'
+        ph = f"__CALLOUT_{counter}__"
+        placeholders[ph] = html_str
+        counter += 1
+        return f"\n\n{ph}\n\n"
+        
+    # Extract ``` code blocks first
+    def codeblock_repl(match):
+        nonlocal counter
+        lang = match.group(1).strip() if match.group(1) else ""
+        code_content = html.escape(match.group(2).strip())
+        lang_class = f' class="language-{lang}"' if lang else ''
+        html_str = f'<pre><code{lang_class}>{code_content}</code></pre>'
+        ph = f"__CODEBLOCK_{counter}__"
+        placeholders[ph] = html_str
+        counter += 1
+        return f"\n\n{ph}\n\n"
+
+    s = re.sub(r"```(\w*)\n(.*?)```", codeblock_repl, s, flags=re.DOTALL)
+    s = re.sub(r":::(principle|warning|analogy)\n(.*?)\n:::", callout_repl, s, flags=re.DOTALL)
+
     paragraphs = re.split(r"\n\n+", s)
     parts = []
     for p in paragraphs:
         p = p.strip()
         if not p:
             continue
-        # Collapse single newlines within a paragraph into spaces
-        p = re.sub(r"\n", " ", p)
-        parts.append(f"<p>{md_inline(p)}</p>")
+        if p in placeholders:
+            parts.append(placeholders[p])
+        else:
+            # Collapse single newlines within a paragraph into spaces
+            p = re.sub(r"\n", " ", p)
+            parts.append(f"<p>{md_inline(p)}</p>")
     return "\n".join(parts)
 
 # ---------- validation ----------
@@ -85,6 +128,35 @@ def validate(data) -> list:
         need_str(sec, "title", p)
         need_str(sec, "body", p)
 
+        diagram = sec.get("diagram")
+        if diagram is not None:
+            if not isinstance(diagram, dict):
+                e(f"{p}.diagram: 객체여야 함")
+            else:
+                if diagram.get("type") != "mermaid":
+                    e(f"{p}.diagram.type: 'mermaid'여야 함")
+                need_str(diagram, "code", f"{p}.diagram")
+                if "caption" in diagram:
+                    need_str(diagram, "caption", f"{p}.diagram", required=False)
+
+        cc = sec.get("codeCompare")
+        if cc is not None:
+            if not isinstance(cc, dict):
+                e(f"{p}.codeCompare: 객체여야 함")
+            else:
+                for side in ["before", "after"]:
+                    if side not in cc or not isinstance(cc[side], dict):
+                        e(f"{p}.codeCompare.{side}: 객체여야 함")
+                    else:
+                        sp = f"{p}.codeCompare.{side}"
+                        need_str(cc[side], "label", sp)
+                        need_str(cc[side], "code", sp)
+                        if "lang" in cc[side]:
+                            need_str(cc[side], "lang", sp, required=False)
+
+        if "analogy" in sec:
+            need_str(sec, "analogy", p, required=False)
+
     # --- quiz ---
     quiz = data.get("quiz")
     if not isinstance(quiz, list) or not quiz:
@@ -108,6 +180,10 @@ def validate(data) -> list:
         ans = q.get("answer")
         if not isinstance(ans, int) or isinstance(ans, bool) or not (0 <= ans < max(len(opts), 1)):
             e(f"{p}.answer: 0 이상 {max(len(opts) - 1, 0)} 이하의 정수여야 함 (현재: {ans!r})")
+        if "difficulty" in q:
+            diff = q["difficulty"]
+            if diff not in [1, 2, 3]:
+                e(f"{p}.difficulty: 1, 2, 3 중 하나여야 함")
 
     # answer position balance: warn (not fail) if one index dominates
     if quiz and not errs:
@@ -128,60 +204,112 @@ def transform(data: dict) -> dict:
         "quiz": [],
     }
     for sec in data["sections"]:
-        out["sections"].append({
+        sec_out = {
             "title": md_inline(sec["title"]),
             "body": md_body(sec["body"]),
-        })
+        }
+        if "diagram" in sec:
+            d = {"type": sec["diagram"]["type"], "code": sec["diagram"]["code"]}
+            if "caption" in sec["diagram"]:
+                d["caption"] = md_inline(sec["diagram"]["caption"])
+            sec_out["diagram"] = d
+        if "codeCompare" in sec:
+            cc = sec["codeCompare"]
+            cc_out = {}
+            for side in ["before", "after"]:
+                cc_out[side] = {
+                    "label": md_inline(cc[side]["label"]),
+                    "code": html.escape(cc[side]["code"]),
+                }
+                if "lang" in cc[side]:
+                    cc_out[side]["lang"] = cc[side]["lang"]
+            sec_out["codeCompare"] = cc_out
+        if "analogy" in sec:
+            sec_out["analogy"] = md_body(sec["analogy"])
+        out["sections"].append(sec_out)
+
     for q in data["quiz"]:
-        out["quiz"].append({
+        q_out = {
             "q": md_inline(q["q"]),
             "options": [md_inline(o) for o in q["options"]],
             "answer": q["answer"],
             "explanation": md_inline(q["explanation"]),
-        })
+        }
+        if "difficulty" in q:
+            q_out["difficulty"] = q["difficulty"]
+        out["quiz"].append(q_out)
     return out
 
 # ---------- main ----------
 
+def _slugify(title: str, max_len: int = 40) -> str:
+    """Create a filename-safe slug from a title (Korean-friendly)."""
+    import unicodedata
+    # Strip HTML tags that md_inline might have produced
+    s = re.sub(r"<[^>]+>", "", title)
+    # Remove chars illegal in filenames
+    s = re.sub(r'[<>:"/\\|?*]', '', s)
+    # Collapse whitespace to hyphens
+    s = re.sub(r'\s+', '-', s.strip())
+    # Remove leading/trailing hyphens
+    s = s.strip('-')
+    # Truncate
+    if len(s) > max_len:
+        s = s[:max_len].rstrip('-')
+    return s or "recall"
+
+
 def main():
+    from datetime import datetime
+
     ap = argparse.ArgumentParser(description="recall-cards HTML builder")
-    ap.add_argument("content", help="content.json 경로")
+    ap.add_argument("content", help="content.json path")
     ap.add_argument("--style", choices=STYLES, default="swiss-minimal")
-    ap.add_argument("-o", "--out", default="index.html")
+    ap.add_argument("-o", "--out", default=None,
+                    help="output path (default: {timestamp}-{title}-recall.html)")
     args = ap.parse_args()
 
     try:
         raw = Path(args.content).read_text(encoding="utf-8")
     except OSError as ex:
-        sys.exit(f"[error] content 파일을 읽을 수 없음: {ex}")
+        sys.exit(f"[error] cannot read content file: {ex}")
     try:
         data = json.loads(raw)
     except json.JSONDecodeError as ex:
-        sys.exit(f"[error] JSON 파싱 실패 (line {ex.lineno}, col {ex.colno}): {ex.msg}\n"
-                 f"        따옴표/줄바꿈/백슬래시 이스케이프를 확인할 것.")
+        sys.exit(f"[error] JSON parse error (line {ex.lineno}, col {ex.colno}): {ex.msg}\n"
+                 f"        check quotes/newlines/backslash escaping.")
 
     errs = validate(data)
     if errs:
-        print(f"[error] 스키마 검증 실패 — {len(errs)}건:", file=sys.stderr)
+        print(f"[error] schema validation failed - {len(errs)} issues:", file=sys.stderr)
         for e in errs:
             print(f"  - {e}", file=sys.stderr)
         sys.exit(1)
 
     template_path = ASSETS / f"{args.style}.html"
     if not template_path.exists():
-        sys.exit(f"[error] 템플릿 없음: {template_path}")
+        sys.exit(f"[error] template not found: {template_path}")
     template = template_path.read_text(encoding="utf-8")
     if PLACEHOLDER not in template:
-        sys.exit(f"[error] 템플릿에 플레이스홀더({PLACEHOLDER})가 없음: {template_path}")
+        sys.exit(f"[error] placeholder ({PLACEHOLDER}) missing in template: {template_path}")
 
     payload = json.dumps(transform(data), ensure_ascii=False)
-    payload = payload.replace("</", "<\\/")  # </script> 조기 종료 방지
+    payload = payload.replace("</", "<\\/")  # prevent </script> early close
     out_html = template.replace(PLACEHOLDER, payload, 1)
 
-    Path(args.out).write_text(out_html, encoding="utf-8")
-    print(f"[ok] {args.out} 생성 — style={args.style}, sections={len(data['sections'])}, "
+    # Determine output filename
+    if args.out:
+        out_path = args.out
+    else:
+        ts = datetime.now().strftime("%Y%m%d_%H%M")
+        slug = _slugify(data.get("title", ""))
+        out_path = f"{ts}-{slug}-recall.html"
+
+    Path(out_path).write_text(out_html, encoding="utf-8")
+    print(f"[ok] {out_path} - style={args.style}, sections={len(data['sections'])}, "
           f"quiz={len(data['quiz'])}")
 
 
 if __name__ == "__main__":
     main()
+
