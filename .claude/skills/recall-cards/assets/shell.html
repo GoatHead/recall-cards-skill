@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Recall Cards</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;500;700&display=swap">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+<link rel="stylesheet" id="hljs-theme" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/github.min.css">
+<style id="theme-css"></style>
+<style>
+  /* shell chrome — theme-agnostic */
+  html{scroll-behavior:smooth;}
+  .eyebrow:empty, .sec-note:empty{display:none;}
+  #progress{position:fixed; top:0; left:0; height:3px; width:0; z-index:100;}
+  #switcher{position:fixed; top:14px; right:14px; z-index:100;}
+  #switcher select{font:13px/1.4 -apple-system,"Segoe UI","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+    color:#24292f; background:rgba(255,255,255,.95); border:1px solid rgba(0,0,0,.18);
+    border-radius:8px; padding:6px 10px; box-shadow:0 2px 8px rgba(0,0,0,.12); cursor:pointer;}
+  #toc{position:fixed; top:110px; left:max(16px, calc(50% - 620px)); width:180px;
+    display:none; font-size:13px; line-height:1.5; z-index:50;}
+  @media (min-width:1240px){#toc{display:block;}}
+  #toc a{display:block; padding:5px 0 5px 12px; border-left:2px solid rgba(128,128,128,.3);
+    color:inherit; text-decoration:none; opacity:.55; word-break:keep-all;}
+  #toc a:hover{opacity:.85;}
+  #toc a.active{opacity:1; font-weight:700; border-left-color:currentColor;}
+  #toc a code{background:none; border:none; padding:0; color:inherit; font-size:1em;}
+  @media (prefers-reduced-motion: reduce){html{scroll-behavior:auto;}}
+</style>
+</head>
+<body>
+<div id="progress"></div>
+<div id="switcher"><select id="theme-select" aria-label="테마 선택"></select></div>
+<nav id="toc" aria-label="목차"></nav>
+<div class="wrap">
+  <header>
+    <div class="eyebrow" id="eyebrow"></div>
+    <h1 id="title"></h1>
+    <div class="meta" id="meta"></div>
+  </header>
+  <main id="sections"></main>
+  <section class="quiz-sec" id="quiz-sec">
+    <div class="sec-label" id="sec-label"></div>
+    <div class="sec-note" id="sec-note"></div>
+    <div id="quiz"></div>
+  </section>
+  <footer><span id="score-label"></span><span id="score">0 / 0</span></footer>
+</div>
+<script src="https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+<script>
+const BUNDLE = /*__THEMES__*/null;
+const DATA = /*__DATA__*/null;
+const $ = id => document.getElementById(id);
+const HLJS_BASE = 'https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/';
+const stripTags = s => String(s||'').replace(/<[^>]+>/g,'');
+let score = 0;
+let current = BUNDLE.default;
+const theme = () => BUNDLE.themes[current];
+
+// ---- static chrome ----
+document.title = stripTags(DATA.title) + ' — Recall Cards';
+$('title').innerHTML = DATA.title;
+(function(){
+  let chars = 0;
+  DATA.sections.forEach(s=>{ chars += stripTags(s.body).length + stripTags(s.analogy).length; });
+  const mins = Math.max(1, Math.round(chars/500));
+  $('meta').innerHTML = [DATA.date, `읽는 데 약 ${mins}분`].filter(Boolean).join(' · ');
+})();
+
+// ---- sections ----
+function renderSections(){
+  $('sections').innerHTML = DATA.sections.map((sec,si)=>{
+    let extras = '';
+    if(sec.diagram){
+      const hasMermaid = typeof mermaid !== 'undefined';
+      extras += `<div class="diagram-wrap">`;
+      if(hasMermaid){
+        extras += `<div class="mermaid">${sec.diagram.code}</div>`;
+      } else {
+        extras += `<pre class="diagram-src">${sec.diagram.code}</pre>`;
+      }
+      if(sec.diagram.caption) extras += `<div class="diagram-cap">${sec.diagram.caption}</div>`;
+      extras += `</div>`;
+    }
+    if(sec.codeCompare){
+      const c = sec.codeCompare;
+      const langB = c.before.lang ? ` class="language-${c.before.lang}"` : '';
+      const langA = c.after.lang ? ` class="language-${c.after.lang}"` : '';
+      extras += `<div class="code-compare">
+        <div class="code-panel code-before"><div class="code-label">✗ ${c.before.label}</div><pre><code${langB}>${c.before.code}</code></pre></div>
+        <div class="code-panel code-after"><div class="code-label">✓ ${c.after.label}</div><pre><code${langA}>${c.after.code}</code></pre></div>
+      </div>`;
+    }
+    if(sec.analogy){
+      extras += `<div class="analogy-card"><span class="analogy-icon">🔗</span><span class="analogy-label">일상으로</span><div class="analogy-body">${sec.analogy}</div></div>`;
+    }
+    return `<article class="theme" id="sec-${si}"><h2>${sec.title}</h2><div class="prose">${sec.body}</div>${extras}</article>`;
+  }).join('');
+}
+
+// ---- quiz (rendered once; answered state survives theme switches) ----
+function makeDiff(diff){
+  if(!diff) return '';
+  const t = theme();
+  const dots = t.diffDots ? '●'.repeat(diff)+'○'.repeat(3-diff)+' ' : '';
+  return `<span class="q-diff q-diff-${diff}">${dots}${t.diffLabels[diff]}</span>`;
+}
+function renderQuiz(){
+  $('quiz').innerHTML = DATA.quiz.map((q,qi)=>{
+    return `<div class="qcard" data-q="${qi}">
+      <div class="qcard-head"><span class="q-num">Q${String(qi+1).padStart(2,'0')}</span>${makeDiff(q.difficulty)}</div>
+      <h2>${q.q}</h2>
+      <div class="opts">${q.options.map((o,oi)=>`
+        <button class="opt" data-o="${oi}"><span class="key">${'ABCDE'[oi]}</span><span>${o}</span></button>`).join('')}
+      </div>
+      <div class="expl"><b>왜?</b>${q.explanation}</div>
+    </div>`;
+  }).join('');
+  $('score').textContent = `0 / ${DATA.quiz.length}`;
+  document.querySelectorAll('.qcard').forEach(card=>{
+    const qi = +card.dataset.q;
+    card.querySelectorAll('.opt').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        if(card.classList.contains('answered')) return;
+        card.classList.add('answered');
+        const pick = +btn.dataset.o, ans = DATA.quiz[qi].answer;
+        card.querySelectorAll('.opt')[ans].classList.add('correct');
+        if(pick!==ans) btn.classList.add('wrong'); else score++;
+        card.querySelector('.expl').classList.add('show');
+        $('score').textContent = `${score} / ${DATA.quiz.length}`;
+      });
+    });
+  });
+}
+
+// ---- toc + scroll spy ----
+function buildToc(){
+  $('toc').innerHTML = DATA.sections.map((s,i)=>
+    `<a href="#sec-${i}" data-t="sec-${i}">${s.title}</a>`).join('') +
+    `<a href="#quiz-sec" data-t="quiz-sec">퀴즈</a>`;
+}
+let spyObs = null;
+function setupSpy(){
+  if(spyObs) spyObs.disconnect();
+  const targets = [...document.querySelectorAll('#sections article'), $('quiz-sec')];
+  spyObs = new IntersectionObserver(entries=>{
+    entries.forEach(e=>{
+      if(!e.isIntersecting) return;
+      document.querySelectorAll('#toc a').forEach(a=>
+        a.classList.toggle('active', a.dataset.t === e.target.id));
+    });
+  }, {rootMargin:'-15% 0px -65% 0px'});
+  targets.forEach(el=>spyObs.observe(el));
+}
+
+// ---- theme application ----
+function renderDiagramsAndCode(){
+  if(typeof mermaid !== 'undefined'){
+    mermaid.initialize(Object.assign({startOnLoad:false, securityLevel:'loose'}, theme().mermaid));
+    mermaid.run({querySelector:'.mermaid'});
+  }
+  if(typeof hljs !== 'undefined') hljs.highlightAll();
+}
+function applyTheme(name){
+  current = name;
+  const t = theme();
+  $('theme-css').textContent = t.css;
+  $('hljs-theme').href = HLJS_BASE + t.hljs + '.min.css';
+  $('eyebrow').textContent = t.eyebrow;
+  $('sec-label').textContent = t.secLabel;
+  $('sec-note').textContent = t.secNote || '';
+  $('score-label').textContent = t.scoreLabel;
+  $('progress').style.background = t.accent;
+  renderSections();
+  renderDiagramsAndCode();
+  document.querySelectorAll('.qcard').forEach(card=>{
+    const q = DATA.quiz[+card.dataset.q];
+    const head = card.querySelector('.qcard-head');
+    const old = head.querySelector('.q-diff');
+    if(old) old.remove();
+    if(q.difficulty) head.insertAdjacentHTML('beforeend', makeDiff(q.difficulty));
+  });
+  setupSpy();
+}
+
+// ---- progress bar ----
+addEventListener('scroll', ()=>{
+  const h = document.documentElement;
+  const p = h.scrollTop / ((h.scrollHeight - h.clientHeight) || 1);
+  $('progress').style.width = (p*100).toFixed(2) + '%';
+}, {passive:true});
+
+// ---- init ----
+(function(){
+  const sel = $('theme-select');
+  sel.innerHTML = Object.entries(BUNDLE.themes).map(([k,v])=>
+    `<option value="${k}"${k===BUNDLE.default?' selected':''}>${v.label}</option>`).join('');
+  sel.addEventListener('change', e=>applyTheme(e.target.value));
+  renderQuiz();
+  buildToc();
+  applyTheme(BUNDLE.default);
+})();
+</script>
+</body>
+</html>

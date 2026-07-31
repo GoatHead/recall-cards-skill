@@ -19,9 +19,22 @@ import re
 import sys
 from pathlib import Path
 
-STYLES = ["swiss-minimal", "neubrutalism", "glassmorphism", "terminal-dark", "claymorphism"]
 ASSETS = Path(__file__).resolve().parent.parent / "assets"
+THEMES_DIR = ASSETS / "themes"
 PLACEHOLDER = "/*__DATA__*/null"
+THEMES_PLACEHOLDER = "/*__THEMES__*/null"
+
+def load_themes() -> dict:
+    """Load theme configs + CSS. Returns {name: {**config, "css": str}}."""
+    cfg = json.loads((THEMES_DIR / "themes.json").read_text(encoding="utf-8"))
+    for name, t in cfg.items():
+        css_path = THEMES_DIR / f"{name}.css"
+        if not css_path.exists():
+            sys.exit(f"[error] theme css not found: {css_path}")
+        t["css"] = css_path.read_text(encoding="utf-8")
+    return cfg
+
+STYLES = list(json.loads((THEMES_DIR / "themes.json").read_text(encoding="utf-8")).keys())
 
 # ---------- mini-markdown ----------
 
@@ -264,7 +277,8 @@ def main():
 
     ap = argparse.ArgumentParser(description="recall-cards HTML builder")
     ap.add_argument("content", help="content.json path")
-    ap.add_argument("--style", choices=STYLES, default="swiss-minimal")
+    ap.add_argument("--style", choices=STYLES, default="velog",
+                    help="initial theme (readers can switch themes in the page)")
     ap.add_argument("-o", "--out", default=None,
                     help="output path (default: {timestamp}-{title}-recall.html)")
     args = ap.parse_args()
@@ -286,16 +300,22 @@ def main():
             print(f"  - {e}", file=sys.stderr)
         sys.exit(1)
 
-    template_path = ASSETS / f"{args.style}.html"
+    template_path = ASSETS / "shell.html"
     if not template_path.exists():
         sys.exit(f"[error] template not found: {template_path}")
     template = template_path.read_text(encoding="utf-8")
-    if PLACEHOLDER not in template:
-        sys.exit(f"[error] placeholder ({PLACEHOLDER}) missing in template: {template_path}")
+    for ph in (PLACEHOLDER, THEMES_PLACEHOLDER):
+        if ph not in template:
+            sys.exit(f"[error] placeholder ({ph}) missing in template: {template_path}")
 
-    payload = json.dumps(transform(data), ensure_ascii=False)
-    payload = payload.replace("</", "<\\/")  # prevent </script> early close
-    out_html = template.replace(PLACEHOLDER, payload, 1)
+    def esc(payload: str) -> str:
+        return payload.replace("</", "<\\/")  # prevent </script> early close
+
+    themes_payload = esc(json.dumps({"default": args.style, "themes": load_themes()},
+                                    ensure_ascii=False))
+    data_payload = esc(json.dumps(transform(data), ensure_ascii=False))
+    out_html = template.replace(THEMES_PLACEHOLDER, themes_payload, 1)
+    out_html = out_html.replace(PLACEHOLDER, data_payload, 1)
 
     # Determine output filename
     if args.out:

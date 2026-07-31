@@ -1,0 +1,122 @@
+{
+  "swiss-minimal": {
+    "label": "Swiss Minimal",
+    "accent": "#C8102E",
+    "hljs": "github",
+    "mermaid": { "theme": "default" },
+    "diffDots": true,
+    "diffLabels": ["", "EASY", "MEDIUM", "HARD"],
+    "eyebrow": "Session Recall",
+    "secLabel": "퀴즈 — 기억을 꺼내보기",
+    "secNote": "",
+    "scoreLabel": "SCORE"
+  },
+  "neubrutalism": {
+    "label": "Neubrutalism",
+    "accent": "#4D96FF",
+    "hljs": "github",
+    "mermaid": { "theme": "default" },
+    "diffDots": true,
+    "diffLabels": ["", "EASY", "MEDIUM", "HARD"],
+    "eyebrow": "Session Recall",
+    "secLabel": "퀴즈 — 기억을 꺼내보기",
+    "secNote": "",
+    "scoreLabel": "SCORE"
+  },
+  "glassmorphism": {
+    "label": "Glassmorphism",
+    "accent": "#9BB5FF",
+    "hljs": "github-dark",
+    "mermaid": { "theme": "dark" },
+    "diffDots": true,
+    "diffLabels": ["", "EASY", "MEDIUM", "HARD"],
+    "eyebrow": "Session Recall",
+    "secLabel": "퀴즈 — 기억을 꺼내보기",
+    "secNote": "",
+    "scoreLabel": "SCORE"
+  },
+  "terminal-dark": {
+    "label": "Terminal Dark",
+    "accent": "#3DDC84",
+    "hljs": "github-dark",
+    "mermaid": { "theme": "dark" },
+    "diffDots": true,
+    "diffLabels": ["", "EASY", "MEDIUM", "HARD"],
+    "eyebrow": "Session Recall",
+    "secLabel": "퀴즈 — 기억을 꺼내보기",
+    "secNote": "",
+    "scoreLabel": "SCORE"
+  },
+  "claymorphism": {
+    "label": "Claymorphism",
+    "accent": "#8B7CF6",
+    "hljs": "github",
+    "mermaid": { "theme": "default" },
+    "diffDots": true,
+    "diffLabels": ["", "EASY", "MEDIUM", "HARD"],
+    "eyebrow": "Session Recall",
+    "secLabel": "퀴즈 — 기억을 꺼내보기",
+    "secNote": "",
+    "scoreLabel": "SCORE"
+  },
+  "velog": {
+    "label": "Velog",
+    "accent": "#12b886",
+    "hljs": "atom-one-dark",
+    "mermaid": { "theme": "default" },
+    "diffDots": true,
+    "diffLabels": ["", "EASY", "MEDIUM", "HARD"],
+    "eyebrow": "Session Recall",
+    "secLabel": "퀴즈 — 기억을 꺼내보기",
+    "secNote": "",
+    "scoreLabel": "SCORE"
+  },
+  "medium": {
+    "label": "Medium",
+    "accent": "#1a8917",
+    "hljs": "github",
+    "mermaid": { "theme": "neutral", "fontFamily": "-apple-system, \"Helvetica Neue\", \"Apple SD Gothic Neo\", \"Noto Sans KR\", sans-serif" },
+    "diffDots": false,
+    "diffLabels": ["", "EASY", "MEDIUM", "HARD"],
+    "eyebrow": "Session Recall",
+    "secLabel": "퀴즈",
+    "secNote": "기억을 꺼내보기",
+    "scoreLabel": "SCORE"
+  },
+  "toss-tech": {
+    "label": "Toss Tech",
+    "accent": "#3182f6",
+    "hljs": "atom-one-light",
+    "mermaid": { "theme": "base", "themeVariables": { "fontFamily": "Pretendard Variable, Pretendard, sans-serif", "primaryColor": "#e8f3ff", "primaryTextColor": "#191f28", "primaryBorderColor": "#3182f6", "lineColor": "#6b7684", "secondaryColor": "#f2f4f6", "tertiaryColor": "#f9fafb" } },
+    "diffDots": false,
+    "diffLabels": ["", "쉬움", "보통", "어려움"],
+    "eyebrow": "Session Recall",
+    "secLabel": "퀴즈 — 기억을 꺼내보기",
+    "secNote": "",
+    "scoreLabel": "내 점수"
+  },
+  "notion": {
+    "label": "Notion",
+    "accent": "#2383e2",
+    "hljs": "github",
+    "mermaid": { "theme": "default" },
+    "diffDots": true,
+    "diffLabels": ["", "EASY", "MEDIUM", "HARD"],
+    "eyebrow": "📚",
+    "secLabel": "퀴즈",
+    "secNote": "기억을 꺼내보기 — 답을 고르면 해설이 열립니다.",
+    "scoreLabel": "점수"
+  },
+  "github": {
+    "label": "GitHub",
+    "accent": "#0969da",
+    "hljs": "github",
+    "mermaid": { "theme": "default" },
+    "diffDots": true,
+    "diffLabels": ["", "EASY", "MEDIUM", "HARD"],
+    "eyebrow": "Session Recall",
+    "secLabel": "퀴즈 — 기억을 꺼내보기",
+    "secNote": "",
+    "scoreLabel": "SCORE"
+  }
+}
