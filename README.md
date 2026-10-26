@@ -65,6 +65,8 @@ recall-cards로 이번 세션 복습 만들어줘
 | quiz_count | 1~15 | 5 |
 | depth | brief · detail | detail |
 
+결과물(`content.json`과 HTML)은 지금 작업 중인 레포 루트의 `recall-cards/` 폴더에 생긴다(git 저장소가 아니면 현재 작업 디렉터리 아래).
+
 **depth 차이** — `brief`는 핵심 원리를 1~2섹션으로 짧게, `detail`은 주제 영역별로 2~5섹션, 각 섹션이 하나의 완결된 블로그 포스트 수준으로. 나중에 다시 읽었을 때 그날의 판단을 재현할 수 있는 수준이 detail의 목표다.
 
 ## How it works

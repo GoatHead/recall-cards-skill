@@ -31,14 +31,15 @@ Claude는 콘텐츠 JSON만 작성하고, 렌더링은 스크립트가 한다. *
    - 예: React `useEffect` 의존성 배열을 고쳤으면 → "이 컴포넌트의 버그 수정"이 아니라, **"클로저가 stale 값을 캡처하는 메커니즘과, 의존성 배열이 이를 해결하는 원리"**를 쓴다.
    - 세션의 구체 코드·상황은 **"우리가 오늘 마주친 사례"**로만 1~2문장 언급. 본문의 주인공은 기반 원리.
    - 단순 작업 로그(파일 몇 개 고침, 변수 이름 변경 등)는 제외.
-3. depth 규칙에 맞춰 `content.json` 작성 (스키마 아래).
-4. **윤문 (필수).** Task/Agent 도구로 서브에이전트를 하나 띄워 content.json의 텍스트 필드(`body`, `analogy`, `explanation`)를 윤문한다. 아래 [윤문 규칙](#윤문-규칙--서브에이전트-프롬프트)을 프롬프트에 그대로 포함하고, content.json 경로를 넘겨 **파일을 직접 수정하게** 한다. 구조(섹션 수, 퀴즈 정답 인덱스, 스키마)는 건드리지 않는다.
-5. 빌드:
+3. **출력 폴더를 정한다.** 지금 작업 중인 레포의 루트(`git rev-parse --show-toplevel`, git 저장소가 아니면 현재 작업 디렉터리) 아래 `recall-cards/`다. 없으면 만든다. content.json과 HTML을 모두 여기에 둔다 — 임시 폴더(scratchpad, `/tmp`)나 스킬 폴더에 두지 않는다.
+4. depth 규칙에 맞춰 `<출력 폴더>/content.json` 작성 (스키마 아래).
+5. **윤문 (필수).** Task/Agent 도구로 서브에이전트를 하나 띄워 content.json의 텍스트 필드(`body`, `analogy`, `explanation`)를 윤문한다. 아래 [윤문 규칙](#윤문-규칙--서브에이전트-프롬프트)을 프롬프트에 그대로 포함하고, content.json 경로를 넘겨 **파일을 직접 수정하게** 한다. 구조(섹션 수, 퀴즈 정답 인덱스, 스키마)는 건드리지 않는다.
+6. 빌드 — 출력 폴더에서 이 스킬의 스크립트를 부른다(스크립트 경로는 스킬 Base directory 기준):
    ```bash
-   python3 scripts/build.py content.json --style <style>
+   cd "<출력 폴더>" && python3 "<스킬 Base directory>/scripts/build.py" content.json --style <style>
    ```
-   `-o`를 생략하면 `{YYYYMMDD_HHMM}-{title}-recall.html` 형식으로 자동 생성된다.
-6. 검증 에러가 나오면 메시지의 JSON 경로를 보고 content.json을 고쳐 재실행. 성공하면 파일을 사용자에게 제시.
+   `-o`를 생략하면 출력 폴더에 `{YYYYMMDD_HHMM}-{title}-recall.html` 형식으로 생성된다. `python3`가 없는 환경(Windows)에서는 `python`으로 부른다.
+7. 검증 에러가 나오면 메시지의 JSON 경로를 보고 content.json을 고쳐 재실행. 성공하면 생성된 파일의 전체 경로를 사용자에게 제시.
 
 ## 윤문 규칙 — 서브에이전트 프롬프트
 
