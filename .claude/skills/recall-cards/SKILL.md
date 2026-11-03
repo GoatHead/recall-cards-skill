@@ -31,15 +31,36 @@ Claude는 콘텐츠 JSON만 작성하고, 렌더링은 스크립트가 한다. *
    - 예: React `useEffect` 의존성 배열을 고쳤으면 → "이 컴포넌트의 버그 수정"이 아니라, **"클로저가 stale 값을 캡처하는 메커니즘과, 의존성 배열이 이를 해결하는 원리"**를 쓴다.
    - 세션의 구체 코드·상황은 **"우리가 오늘 마주친 사례"**로만 1~2문장 언급. 본문의 주인공은 기반 원리.
    - 단순 작업 로그(파일 몇 개 고침, 변수 이름 변경 등)는 제외.
-3. **출력 폴더를 정한다.** 지금 작업 중인 레포의 루트(`git rev-parse --show-toplevel`, git 저장소가 아니면 현재 작업 디렉터리) 아래 `recall-cards/`다. 없으면 만든다. content.json과 HTML을 모두 여기에 둔다 — 임시 폴더(scratchpad, `/tmp`)나 스킬 폴더에 두지 않는다.
+3. **출력 폴더를 정한다.** 지금 작업 중인 레포의 루트(`git rev-parse --show-toplevel`, git 저장소가 아니면 현재 작업 디렉터리) 아래 `recall-cards/`다. 없으면 만든다. content.json, 윤문 작업 폴더(`_workspace/`), HTML을 모두 여기에 둔다 — 임시 폴더(scratchpad, `/tmp`)나 스킬 폴더에 두지 않는다. 아래 명령은 모두 출력 폴더에서 실행하고, 스크립트 경로는 스킬 Base directory 기준이다. `python3`가 없는 환경(Windows)에서는 `python`으로 부른다.
 4. depth 규칙에 맞춰 `<출력 폴더>/content.json` 작성 (스키마 아래).
-5. **윤문 (필수).** Task/Agent 도구로 서브에이전트를 하나 띄워 content.json의 텍스트 필드(`body`, `analogy`, `explanation`)를 윤문한다. 아래 [윤문 규칙](#윤문-규칙--서브에이전트-프롬프트)을 프롬프트에 그대로 포함하고, content.json 경로를 넘겨 **파일을 직접 수정하게** 한다. 구조(섹션 수, 퀴즈 정답 인덱스, 스키마)는 건드리지 않는다.
-6. 빌드 — 출력 폴더에서 이 스킬의 스크립트를 부른다(스크립트 경로는 스킬 Base directory 기준):
+5. **윤문 1차 — 페르소나 (필수).** Task/Agent 도구로 서브에이전트를 하나 띄워 content.json의 텍스트 필드(`body`, `analogy`, `explanation`)를 윤문한다. 아래 [윤문 규칙](#윤문-규칙--서브에이전트-프롬프트)을 프롬프트에 그대로 포함하고, content.json 경로를 넘겨 **파일을 직접 수정하게** 한다. 구조(섹션 수, 퀴즈 정답 인덱스, 스키마)는 건드리지 않는다.
+6. **윤문 2차 — humanize-korean (필수).** 빌드 직전 최종 텍스트에 [humanize-korean 스킬](#humanize-korean-레퍼런스)을 돌려 남은 AI 티를 걷어낸다.
+   1. 텍스트 필드를 마크다운으로 뽑는다. `{run_id}`는 레퍼런스 SKILL.md의 run_id 규칙을 따른다.
+      ```bash
+      cd "<출력 폴더>" && python3 "<스킬 Base directory>/scripts/textfields.py" extract content.json _workspace/{run_id}/01_input.txt
+      ```
+   2. 레퍼런스 SKILL.md의 **Phase 1 4번(shim)부터 Phase 2.5 게이트까지** 그대로 따른다. 장르는 `blog`, 경로는 `route_hint`. `--strict`·"정밀하게" 요청이 있으면 heavy.
+   3. 게이트가 통과하면 윤문본을 content.json에 되돌린다. 코드·콜아웃 표기가 바뀐 필드는 스크립트가 원문을 유지하고 경고한다.
+      ```bash
+      cd "<출력 폴더>" && python3 "<스킬 Base directory>/scripts/textfields.py" apply content.json _workspace/{run_id}/final.md
+      ```
+   4. 사용자에게는 humanize 상태 줄 한 줄(`경로 / 변경률 / 등급`)만 보고한다. 레퍼런스의 "결과 전달" 4항은 생략한다 — 최종 산출물은 HTML이다.
+7. 빌드:
    ```bash
    cd "<출력 폴더>" && python3 "<스킬 Base directory>/scripts/build.py" content.json --style <style>
    ```
-   `-o`를 생략하면 출력 폴더에 `{YYYYMMDD_HHMM}-{title}-recall.html` 형식으로 생성된다. `python3`가 없는 환경(Windows)에서는 `python`으로 부른다.
-7. 검증 에러가 나오면 메시지의 JSON 경로를 보고 content.json을 고쳐 재실행. 성공하면 생성된 파일의 전체 경로를 사용자에게 제시.
+   `-o`를 생략하면 출력 폴더에 `{YYYYMMDD_HHMM}-{title}-recall.html` 형식으로 생성된다.
+8. 검증 에러가 나오면 메시지의 JSON 경로를 보고 content.json을 고쳐 재실행. 성공하면 생성된 파일의 전체 경로를 사용자에게 제시.
+
+## humanize-korean 레퍼런스
+
+`references/humanize-korean/`은 [epoko77-ai/im-not-ai](https://github.com/epoko77-ai/im-not-ai) v2.3.2(MIT)의 humanize-korean 스킬 복사본이다. 업스트림 복사 설치(`install.sh --copy`)와 같은 구성(SKILL.md + references/ + 런타임 scripts/)에 런타임 에이전트 정의 3종(`agents/`)을 더했다. 갱신은 업스트림에서 같은 파일을 다시 복사한다.
+
+레퍼런스 SKILL.md를 따를 때 경로는 이렇게 읽는다:
+
+- `${SKILL_ROOT}`와 `${CLAUDE_SKILL_DIR}`는 둘 다 `<스킬 Base directory>/references/humanize-korean` 절대경로. `SKILL_ROOT` 유도 스크립트는 돌리지 않는다 — 거슬러 올라가면 recall-cards 플러그인 루트를 잡는다.
+- `_workspace/`는 cwd 기준이므로 출력 폴더에서 실행하면 그대로 `<출력 폴더>/_workspace/`에 생긴다.
+- 에이전트: `humanize-korean` 플러그인이 설치돼 있으면 `humanize-korean:humanize-monolith`·`humanize-korean:humanize-diagnostician`·`humanize-korean:humanize-finalizer` 타입을 쓴다. 없으면 general-purpose 서브에이전트에게 `references/humanize-korean/agents/<이름>.md`를 읽고 그 지시대로 동작하라고 넘긴다. 어느 쪽이든 입력·룰북·출력(`final.md`) 경로는 절대경로로 준다.
 
 ## 윤문 규칙 — 서브에이전트 프롬프트
 

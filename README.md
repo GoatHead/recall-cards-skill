@@ -74,12 +74,14 @@ recall-cards로 이번 세션 복습 만들어줘
 Claude는 콘텐츠 JSON만 쓰고, HTML은 스크립트가 만든다. 매번 UI 코드를 다시 생성하지 않으므로 출력 토큰이 절약되고 결과물의 모양이 항상 일정하다.
 
 ```
-세션 회고 → 기반 지식 발굴 → content.json → build.py → 단일 HTML
+세션 회고 → 기반 지식 발굴 → content.json → 윤문(페르소나 → humanize-korean) → build.py → 단일 HTML
 ```
 
 ```bash
 python3 scripts/build.py content.json --style terminal-dark -o recall.html
 ```
+
+빌드 직전에는 번들된 [humanize-korean](https://github.com/epoko77-ai/im-not-ai)(MIT) 스킬로 본문·비유·해설의 AI 티를 한 번 더 걷어낸다. `scripts/textfields.py`가 텍스트 필드를 마크다운으로 뽑고, 윤문본을 다시 content.json에 넣는다. 코드나 콜아웃 표기가 바뀐 필드는 원문을 유지한다. 윤문 작업 폴더(`_workspace/`)도 `recall-cards/` 안에 생긴다.
 
 `build.py`는 스키마를 검증해 문제가 있으면 JSON 경로와 함께 알려준다(`$.quiz[0].answer: 0 이상 3 이하의 정수여야 함`). 본문은 전부 HTML 이스케이프되고 `` `code` ``와 `**bold**`만 태그로 변환되며, `\n\n`으로 문단이 분리되므로 긴 산문도 깔끔하게 렌더링된다.
 
@@ -94,7 +96,10 @@ python3 scripts/build.py content.json --style terminal-dark -o recall.html
 .claude/skills/recall-cards/
 ├── SKILL.md              # 파라미터·스키마·퀴즈 품질 규칙
 ├── assets/               # 5개 스타일 템플릿 (마크업 동일, CSS만 상이)
-└── scripts/build.py      # 검증 → 마크다운 변환 → 주입
+├── references/humanize-korean/  # 한글 AI 티 제거 스킬 복사본 (MIT)
+└── scripts/
+    ├── build.py          # 검증 → 마크다운 변환 → 주입
+    └── textfields.py     # content.json ↔ 윤문용 마크다운 왕복
 ```
 
 템플릿 5개는 CSS만 다르다. 마크업이나 퀴즈 로직을 고칠 땐 하나를 고친 뒤 나머지에 `<style>` 블록만 갈아끼우면 된다.
